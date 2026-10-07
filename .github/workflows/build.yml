@@ -66,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CodexImageFix-macOS-v${{ steps.version.outputs.version }}
-          path: dist/CodexImageFix-macOS
+          path: dist/CodexImageFix-macOS-v*
           if-no-files-found: error
 
   release:
@@ -95,7 +95,7 @@ jobs:
             ## 下载（点文件名直接下载，无需解压）
 
             - **Windows**：`CodexImageFix-Windows.exe` → 下载后直接双击
-            - **Mac**：`CodexImageFix-macOS` → 下载后在终端执行 `chmod +x CodexImageFix-macOS`（仅首次），之后双击运行
+            - **Mac**：`CodexImageFix-macOS-v*.x` → 下载后在终端执行 `chmod +x 下载的文件名`（仅首次），之后双击运行
 
             > Mac 首次打开如提示"无法验证开发者"：右键 → 打开，或到「系统设置 → 隐私与安全性」点「仍要打开」
 
