@@ -12,7 +12,7 @@ Codex 生图修复工具
   python codex_fix.py --key sk-xxx  # 指定 API key
   python codex_fix.py --dry-run     # 只检查不修改
 """
-VERSION = "1.5"
+VERSION = "1.6"
 
 import argparse
 import glob
@@ -511,6 +511,12 @@ def main():
         print("  2. 在 AI 管家（暴喵管家）里确认「路由模式」已启用")
         print("  3. 在 Codex 里【新开一个对话框】再使用")
         print("=" * 50)
+        print()
+        print("┌─────────────────────────────────────┐")
+        print(f"│  CodexImageFix  v{VERSION}")
+        print("│  如仍有问题，截图上方修复结果")
+        print("│  连同本版本号发给管理员")
+        print("└─────────────────────────────────────┘")
         # 双击运行时停住，避免窗口一闪而过
         try:
             input("\n按回车键关闭...")

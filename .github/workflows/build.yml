@@ -59,7 +59,7 @@ jobs:
           cd ./dist
           F=$(ls CodexImageFix* | head -1)
           chmod +x "$F"
-          mv "$F" "CodexImageFix-macOS"
+          mv "$F" "CodexImageFix-macOS-v${{ steps.version.outputs.version }}"
 
       - name: Upload raw binary (macOS)
         if: runner.os == 'macOS'
