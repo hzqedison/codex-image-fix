@@ -33,14 +33,14 @@ jobs:
         id: version
         shell: bash
         run: |
-          VER=$(python -c "import re; print(re.search(r'VERSION = \"([^\"]+)\"', open('tools/codex-image-fix/codex_image_fix.py', encoding='utf-8').read()).group(1))")
+          VER=$(python -c "import re; print(re.search(r'VERSION = \"([^\"]+)\"', open('codex_image_fix.py', encoding='utf-8').read()).group(1))")
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "读取到版本 v$VER"
 
       - name: Build
         shell: bash
         run: |
-          cd tools/codex-fix
+          cd .
           pyinstaller --onefile --console --name "CodexImageFix-v${{ steps.version.outputs.version }}" --clean --noconfirm codex_image_fix.py
 
       - name: Upload artifact
@@ -48,7 +48,7 @@ jobs:
         with:
           name: ${{ matrix.artifact }}-v${{ steps.version.outputs.version }}
           path: |
-            tools/codex-image-fix/dist/CodexImageFix*
+            dist/CodexImageFix*
           if-no-files-found: error
 
       # Mac：去掉可执行属性以外的压缩，保留裸二进制供直接下载运行
@@ -56,7 +56,7 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          cd tools/codex-image-fix/dist
+          cd ./dist
           F=$(ls CodexImageFix* | head -1)
           chmod +x "$F"
           mv "$F" "CodexImageFix-macOS"
@@ -66,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CodexImageFix-macOS-v${{ steps.version.outputs.version }}
-          path: tools/codex-image-fix/dist/CodexImageFix-macOS
+          path: dist/CodexImageFix-macOS
           if-no-files-found: error
 
   release:
@@ -102,7 +102,7 @@ jobs:
             ## 使用
 
             双击运行，自动修复后按提示重启 Codex。
-            详细变更见仓库 tools/codex-image-fix/CHANGELOG.md
+            详细变更见CHANGELOG.md
           files: |
             dist/CodexImageFix*
           draft: false
