@@ -12,7 +12,7 @@ Codex 生图修复工具
   python codex_fix.py --key sk-xxx  # 指定 API key
   python codex_fix.py --dry-run     # 只检查不修改
 """
-VERSION = "1.6"
+VERSION = "1.7"
 
 import argparse
 import glob
@@ -456,6 +456,20 @@ def fix_route_mode(dry=False):
 
 
 # ---------- 主流程 ----------
+def check_ai_manager_running():
+    """检查暴喵AI管家是否在运行（路由转发依赖它，必须先开）"""
+    try:
+        if IS_MAC:
+            r = subprocess.run(["pgrep", "-f", "ai-manager"],
+                               capture_output=True, text=True, timeout=10)
+            return r.returncode == 0
+        r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq ai-manager.exe"],
+                           capture_output=True, encoding="gbk", errors="replace", timeout=10)
+        return "ai-manager" in (r.stdout or "")
+    except Exception:
+        return None  # 检测不了，不拦用户
+
+
 def main():
     ap = argparse.ArgumentParser(description="Codex 生图修复工具")
     ap.add_argument("--key", help="指定 API key（不传则自动从环境变量/auth.json/config.toml 读）")
@@ -468,6 +482,23 @@ def main():
     print("=" * 50)
     if args.dry_run:
         print("【预览模式】不会实际修改任何文件\n")
+
+    # ★ 前置检查：暴喵AI管家 + 「需要路由」开关（修复生效的前提）
+    if not args.dry_run:
+        running = check_ai_manager_running()
+        if running is False:
+            print()
+            print("❗ 检测不到暴喵AI管家在运行")
+            print("   路由转发依赖管家，请先完成下面两步再回来：")
+            print("   1. 打开暴喵AI管家")
+            print("   2. 左侧「模型管理」→ 找到你的供应商（俊云AI-xxx）")
+            print("      → 打开它旁边的「需要路由」开关")
+            print()
+            try:
+                input("   都打开后，按回车继续（直接回车=忽略并继续）...")
+            except (EOFError, KeyboardInterrupt):
+                pass
+            print()
 
     # 交互式获取 key（读不到时主动让用户输入，否则无法自动填 key）
     key = args.key
@@ -507,8 +538,9 @@ def main():
     else:
         print("=" * 50)
         print("修复完成！后续三步（缺一不可）：")
-        print("  1. 彻底重启 Codex（托盘退出，不是关窗口）")
-        print("  2. 在 AI 管家（暴喵管家）里确认「路由模式」已启用")
+        print("  1. 暴喵AI管家 → 模型管理 → 你的供应商 →")
+        print("     确认「需要路由」开关已打开（修复前就该开着）")
+        print("  2. 彻底重启 Codex（托盘退出，不是关窗口）")
         print("  3. 在 Codex 里【新开一个对话框】再使用")
         print("=" * 50)
         print()
