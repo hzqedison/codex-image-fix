@@ -12,7 +12,7 @@ Codex 生图修复工具
   python codex_fix.py --key sk-xxx  # 指定 API key
   python codex_fix.py --dry-run     # 只检查不修改
 """
-VERSION = "1.7"
+VERSION = "1.8"
 
 import argparse
 import glob
@@ -23,6 +23,8 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import urllib.request
+import urllib.error
 from datetime import datetime
 
 # 确保 Windows cmd 下中文输出不乱码
@@ -456,6 +458,23 @@ def fix_route_mode(dry=False):
 
 
 # ---------- 主流程 ----------
+GATEWAY = "https://aihao.6fast.com"
+
+
+def validate_key(k):
+    """到网关验证 key 有效性：True=有效 False=无效(401) None=网络不通验证不了"""
+    try:
+        req = urllib.request.Request(
+            GATEWAY + "/v1/usage",
+            headers={"Authorization": "Bearer " + k})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return r.status == 200
+    except urllib.error.HTTPError as e:
+        return False if e.code in (401, 403) else None
+    except Exception:
+        return None
+
+
 def check_ai_manager_running():
     """检查暴喵AI管家是否在运行（路由转发依赖它，必须先开）"""
     try:
@@ -501,6 +520,7 @@ def main():
             print()
 
     # 交互式获取 key（读不到时主动让用户输入，否则无法自动填 key）
+    # ★ 粘贴的 key 先到网关验证，无效不给写入（防止错 key 写进配置难排查）
     key = args.key
     if not args.dry_run and not key and not get_key():
         print()
@@ -508,15 +528,32 @@ def main():
         print("  （常见原因：用 ChatGPT 账号登录 + 代理托管，key 没明文存储）")
         print("  你的 key 可以在后台 /keys 页面查到，格式 sk- 开头")
         print()
-        try:
-            k = input("请输入你的 API key（粘贴后回车，直接回车则跳过）：").strip()
-            if k.startswith("sk-"):
+        for attempt in range(3):
+            try:
+                k = input("请输入你的 API key（粘贴后回车，直接回车则跳过）：").strip()
+            except (EOFError, KeyboardInterrupt):
+                print("  无法交互输入，将跳过 key 相关修复\n")
+                k = ""
+                break
+            if not k:
+                print("  未输入，将跳过 key 相关修复（其他修复照常）\n")
+                break
+            if not k.startswith("sk-"):
+                print("  格式不对（应以 sk- 开头），请重试\n")
+                continue
+            v = validate_key(k)
+            if v is True:
                 key = k
-                print(f"  已获取 key（尾号 {k[-6:]}）\n")
+                print(f"  ✅ key 验证通过（尾号 {k[-6:]}）\n")
+                break
+            elif v is False:
+                print(f"  ❌ 这个 key 无效（网关返回 401），别用别人的/过期的！")
+                print(f"     请到后台 /keys 页面复制【你自己】的 key 重试\n")
             else:
-                print("  未输入有效 key，将跳过 key 相关修复（其他修复照常）\n")
-        except (EOFError, KeyboardInterrupt):
-            print("  无法交互输入，将跳过 key 相关修复\n")
+                # 网络不通验证不了，接受但提醒
+                key = k
+                print(f"  ⚠️ 网关连不上无法验证，先采用（尾号 {k[-6:]}）\n")
+                break
 
     results = [
         fix_zombie_process(args.dry_run),
